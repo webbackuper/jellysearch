@@ -1,0 +1,21 @@
+[
+  {
+    "guid": "8b8ecb0d-b645-48ad-a58a-2e79c932f0c7",
+    "versions": [
+      {
+        "version": "1.0.0.0",
+        "changelog": "Première version : recherche tolérante (accents, fautes de frappe) dans les titres, personnes, genres, tags et résumés ; filtres combinables (note TMDB et IMDb, année, durée, genre, MediaID, vu, favori…) avec ET, OU, NON ; phrases tapées ou dictées sur la TV ; notes IMDb sur les fiches ; recherches enregistrées en tuiles dans « Mes médias » (web et TV).",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/webbackuper/jellysearch/releases/download/v1.0.0.0/jellysearch_1.0.0.0.zip",
+        "checksum": "5cdb9249c9c5179d26881a0614aa396f",
+        "timestamp": "2026-11-23T21:19:36Z"
+      }
+    ],
+    "name": "JellySearch",
+    "description": "Remplace la recherche de Jellyfin pour les films, séries, épisodes et collections : accents et fautes de frappe ignorés, recherche dans les résumés, acteurs, réalisateurs, genres et tags, filtres combinables (note IMDb ou TMDB, année, durée, genre, MediaID, vu, favori…) avec ET, OU, NON, >, <, =. Sur la TV, filtres tapés ou dictés en phrases ; les recherches enregistrées deviennent des tuiles dans « Mes médias ».",
+    "overview": "Recherche tolérante, filtres combinables et tuiles, sur le web et la TV",
+    "owner": "webbackuper",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/webbackuper/jellysearch/main/assets/jellysearch.png"
+  }
+]
