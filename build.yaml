@@ -1,0 +1,19 @@
+---
+name: "JellySearch"
+guid: "8b8ecb0d-b645-48ad-a58a-2e79c932f0c7"
+version: "1.0.0.0"
+targetAbi: "12.4.0.0"
+framework: "net10.0"
+overview: "Recherche tolérante (accents, fautes), filtres combinables et recherches enregistrées en tuiles, sur le web et la TV"
+description: >
+  JellySearch remplace la recherche de Jellyfin pour les films, séries, épisodes et collections :
+  elle ignore les accents et les fautes de frappe, cherche aussi dans les résumés, les acteurs, les
+  réalisateurs, les genres et les tags, et comprend des filtres (note IMDb ou TMDB, année, durée,
+  genre, MediaID, vu, favori…) avec ET, OU, NON, >, <, =. Sur la TV, on tape les filtres ou on les
+  dicte en phrases ; les recherches enregistrées deviennent des tuiles dans « Mes médias ».
+category: "General"
+owner: "webbackuper"
+artifacts:
+- "Jellyfin.Plugin.JellySearch.dll"
+changelog: >
+  1.0.0.0 : première version.

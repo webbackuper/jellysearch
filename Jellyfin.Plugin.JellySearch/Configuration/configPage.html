@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>JellySearch</title>
+</head>
+<body>
+    <div id="JellySearchConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <style>
+            #JellySearchConfigPage .jsrch-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);grid-template-areas:"intro side" "main side";grid-template-rows:auto 1fr;column-gap:1.5em;margin-top:1em}
+            #JellySearchConfigPage .jsrch-intro{grid-area:intro;margin-bottom:1.2em}
+            #JellySearchConfigPage .jsrch-main{grid-area:main;min-width:0}
+            #JellySearchConfigPage .jsrch-side{grid-area:side;align-self:start;display:flex;flex-direction:column;gap:.8em}
+            #JellySearchConfigPage .jsrch-intro h1{margin:0 0 .5em}
+            #JellySearchConfigPage .jsrch-intro p{margin:0;max-width:80ch;line-height:1.5}
+            #JellySearchConfigPage .jsrch-img{width:100%;border-radius:.4em;display:block;margin-bottom:.8em}
+            #JellySearchConfigPage .jsrch-img[hidden]{display:none}
+            #JellySearchConfigPage .jsrch-tabs{display:flex;gap:.3em;border-bottom:1px solid rgba(128,128,128,.35);margin-bottom:1.2em}
+            #JellySearchConfigPage .jsrch-tab{background:none;border:0;border-bottom:3px solid transparent;color:inherit;font:inherit;padding:.6em 1em;cursor:pointer;opacity:.75}
+            #JellySearchConfigPage .jsrch-tab.active{border-bottom-color:#00a4dc;opacity:1;font-weight:600}
+            #JellySearchConfigPage .jsrch-side .emby-button{margin:0;width:100%}
+            #JellySearchConfigPage .jsrch-details{width:100%;border-collapse:collapse}
+            #JellySearchConfigPage .jsrch-details th,#JellySearchConfigPage .jsrch-details td{text-align:left;padding:.55em .4em;border-bottom:1px solid rgba(128,128,128,.25);vertical-align:top}
+            #JellySearchConfigPage .jsrch-details th{font-weight:600;white-space:nowrap;width:1%;padding-right:1em}
+            #JellySearchConfigPage .jsrch-details a{color:inherit;word-break:break-all}
+            #JellySearchConfigPage .jsrch-rev{border:1px solid rgba(128,128,128,.3);border-radius:.4em;padding:.8em 1em;margin-bottom:.8em}
+            #JellySearchConfigPage .jsrch-rev-head{display:flex;align-items:center;gap:.8em;flex-wrap:wrap}
+            #JellySearchConfigPage .jsrch-rev-head b{font-size:1.1em}
+            #JellySearchConfigPage .jsrch-rev-head .emby-button{margin:0 0 0 auto;padding:.3em 1em}
+            #JellySearchConfigPage .jsrch-rev-badge{background:#00a4dc;color:#fff;border-radius:1em;padding:.1em .7em;font-size:.85em}
+            #JellySearchConfigPage .jsrch-rev-log{margin:.6em 0 0;white-space:pre-wrap;line-height:1.5;opacity:.9}
+            #JellySearchConfigPage .jsrch-muted{opacity:.65}
+            #JellySearchConfigPage .jsrch-advanced{margin:1.5em 0 2em;border-top:1px solid rgba(128,128,128,.35);padding-top:1em}
+            #JellySearchConfigPage .jsrch-advanced>summary{cursor:pointer;font-size:1.2em;font-weight:600;padding:.4em 0}
+            #JellySearchConfigPage .jsrch-syntax{line-height:1.7;margin:.4em 0 1.2em}
+            #JellySearchConfigPage .jsrch-syntax code{background:rgba(128,128,128,.2);border-radius:.25em;padding:.05em .35em}
+            @media (max-width:1200px){
+                #JellySearchConfigPage .jsrch-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"intro" "side" "main";grid-template-rows:auto}
+                #JellySearchConfigPage .jsrch-img{display:none}
+                #JellySearchConfigPage .jsrch-side{margin-bottom:1.2em}
+            }
+        </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <div class="jsrch-layout">
+                <div class="jsrch-intro">
+                    <h1>JellySearch</h1>
+                    <p id="JsrchDescription"></p>
+                </div>
+                <div class="jsrch-main">
+                <div class="jsrch-tabs" role="tablist">
+                    <button type="button" class="jsrch-tab active" role="tab" data-tab="settings">Paramètres</button>
+                    <button type="button" class="jsrch-tab" role="tab" data-tab="history">Historique des versions</button>
+                </div>
+                <div data-panel="history" hidden>
+                    <div id="JsrchRevisions"><p class="jsrch-muted">Chargement…</p></div>
+                </div>
+                <div data-panel="settings">
+                <form id="JellySearchConfigForm">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Essentiel</h2>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="EnableSearch" type="checkbox" is="emby-checkbox" />
+                                <span>Remplacer la recherche de Jellyfin pour les films, séries, épisodes et collections</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Pour tous les clients : page web, application Android TV, applications mobiles. La musique, la TV en direct et les personnes restent cherchées par Jellyfin.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="NaturalLanguage" type="checkbox" is="emby-checkbox" />
+                                <span>Comprendre les phrases</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">« comédies des années 90 avec Jim Carrey », « films de Spielberg après 2000 », « séries non vues » ; pratique au micro de la télécommande. Un titre tapé exactement reste toujours en tête.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="Typos" type="checkbox" is="emby-checkbox" />
+                                <span>Tolérer les fautes de frappe</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">« ailen » trouve Alien, « harri poter » Harry Potter. Les accents et les majuscules sont toujours ignorés.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="DownloadImdbRatings" type="checkbox" is="emby-checkbox" />
+                                <span>Télécharger les notes IMDb chaque semaine</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Fichier public des notes d'IMDb (environ 8 Mo, usage personnel), relié aux films par leur identifiant IMDb : filtres <code>imdb&gt;7</code>, note affichée sur les fiches. Rien n'est écrit dans la base. Tâche « Télécharger les notes IMDb » (Tableau de bord &gt; Tâches planifiées &gt; JellySearch).</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="BasePath">Dossier des disques USB</label>
+                            <input id="BasePath" type="text" is="emby-input" />
+                            <div class="fieldDescription">Le MediaID est le nom du dossier qui suit ce chemin (ex. /mnt/usb/<b>MOVIES03</b>/…), comme dans JellyUSB : filtres <code>media:MOVIES03</code> et <code>dispo:oui</code> (disque branché).</div>
+                        </div>
+
+                        <p class="fieldDescription" id="JsrchStatus"></p>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Syntaxe</h2>
+                        <div class="jsrch-syntax">
+                            Texte libre : titre, titre original, acteurs, réalisateurs, genres, tags, studios et résumé. Filtres <code>champ opérateur valeur</code> :
+                            <code>genre:horreur</code> <code>annee:1980..1989</code> <code>annee:90s</code> <code>tmdb&gt;7</code> <code>imdb&gt;=8</code> <code>votes&gt;100k</code>
+                            <code>duree&lt;1h45</code> <code>age&lt;=12</code> <code>acteur:"jim carrey"</code> <code>realisateur:spielberg</code> <code>tag:requin</code>
+                            <code>media:MOVIES03</code> <code>dispo:oui</code> <code>type:serie</code> <code>vu:non</code> <code>favori:oui</code> <code>ajout&lt;30j</code> <code>tri:imdb</code>.
+                            Combinaisons : <code>OU</code>, <code>NON</code>, <code>-mot</code>, parenthèses, valeurs multiples <code>genre:western|comedie</code>.
+                            Sur la page de recherche web, les boutons « Filtres » et « Aide » composent et expliquent la recherche ; « Créer une tuile » l'enregistre dans « Mes médias » (web et TV).
+                        </div>
+                    </div>
+
+                    <details class="jsrch-advanced">
+                        <summary>Réglages avancés</summary>
+
+                        <h3>Chercher aussi le texte libre dans</h3>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label"><input id="SearchOverview" type="checkbox" is="emby-checkbox" /><span>les résumés</span></label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label"><input id="SearchPeople" type="checkbox" is="emby-checkbox" /><span>les acteurs, réalisateurs et scénaristes</span></label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label"><input id="SearchTags" type="checkbox" is="emby-checkbox" /><span>les genres, tags et studios</span></label>
+                        </div>
+
+                        <h3>Télévision (application Android TV)</h3>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label"><input id="TvSavedTiles" type="checkbox" is="emby-checkbox" /><span>Afficher les recherches enregistrées en tuiles dans « Mes médias »</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">Chaque tuile ouvre la grille de ses résultats, toujours à jour. Rien n'est créé dans la médiathèque.</div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label"><input id="TvRatingsLine" type="checkbox" is="emby-checkbox" /><span>Afficher les notes IMDb et TMDB sur la fiche du film</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">Une première ligne est ajoutée au résumé, seulement dans ce que reçoit la TV.</div>
+                        </div>
+
+                        <h3>Navigateur (interface web)</h3>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label"><input id="EnableWebEnhancements" type="checkbox" is="emby-checkbox" /><span>Ajouter le script JellySearch à l'interface web</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">Ajouté à la volée à la page servie : les fichiers de Jellyfin ne sont pas modifiés. Sans lui, la recherche reste améliorée mais sans panneau ni tuiles web.</div>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label"><input id="WebFilterPanel" type="checkbox" is="emby-checkbox" /><span>Panneau « Filtres » sur la page de recherche</span></label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label"><input id="WebExplain" type="checkbox" is="emby-checkbox" /><span>Afficher « Compris : … » sous le champ de recherche</span></label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label"><input id="WebSavedTiles" type="checkbox" is="emby-checkbox" /><span>Afficher les recherches enregistrées en tuiles dans « Mes médias »</span></label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label"><input id="WebRatingsBadge" type="checkbox" is="emby-checkbox" /><span>Afficher la note IMDb sur la fiche du film</span></label>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="ImdbRatingsUrl">Adresse du fichier des notes IMDb</label>
+                            <input id="ImdbRatingsUrl" type="text" is="emby-input" />
+                        </div>
+                    </details>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Enregistrer</span>
+                        </button>
+                    </div>
+                </form>
+                </div>
+                </div>
+                <aside class="jsrch-side">
+                    <img id="JsrchImage" class="jsrch-img" alt="JellySearch" hidden />
+                    <div class="checkboxContainer" style="margin:0">
+                        <label class="emby-checkbox-label">
+                            <input id="JsrchEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Activer l'extension</span>
+                        </label>
+                    </div>
+                    <button is="emby-button" type="button" id="JsrchUninstall" class="raised emby-button" style="background:#c0392b;color:#fff">
+                        <span>Désinstaller</span>
+                    </button>
+                    <table class="jsrch-details">
+                        <tbody>
+                            <tr><th>Statut</th><td id="JsrchStatusCell">…</td></tr>
+                            <tr><th>Version</th><td id="JsrchVersion">…</td></tr>
+                            <tr><th>Développeur</th><td id="JsrchOwner">…</td></tr>
+                            <tr><th>Dépôt</th><td id="JsrchRepository">…</td></tr>
+                        </tbody>
+                    </table>
+                </aside>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginId = '8b8ecb0d-b645-48ad-a58a-2e79c932f0c7';
+                var pluginName = 'JellySearch';
+                var page = document.querySelector('#JellySearchConfigPage');
+                var texts = ['BasePath', 'ImdbRatingsUrl'];
+                var checks = ['EnableSearch', 'NaturalLanguage', 'Typos', 'DownloadImdbRatings', 'SearchOverview', 'SearchPeople', 'SearchTags',
+                    'TvSavedTiles', 'TvRatingsLine', 'EnableWebEnhancements', 'WebFilterPanel', 'WebExplain', 'WebSavedTiles', 'WebRatingsBadge'];
+                var installed = null;
+                var pkg = null;
+
+                function esc(v) {
+                    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+                        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                    });
+                }
+
+                var STATUS = {
+                    Active: 'Actif', Restart: 'Redémarrage de Jellyfin nécessaire', Disabled: 'Désactivé',
+                    NotSupported: 'Non pris en charge', Malfunctioned: 'En erreur', Superceded: 'Remplacé par une autre version',
+                    Superseded: 'Remplacé par une autre version', Deleted: 'Désinstallé (au prochain redémarrage)'
+                };
+
+                function showTab(name) {
+                    page.querySelectorAll('.jsrch-tab').forEach(function (t) {
+                        var on = t.getAttribute('data-tab') === name;
+                        t.classList.toggle('active', on);
+                        t.setAttribute('aria-selected', on ? 'true' : 'false');
+                    });
+                    page.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== name; });
+                }
+                page.querySelectorAll('.jsrch-tab').forEach(function (t) {
+                    t.addEventListener('click', function () { showTab(t.getAttribute('data-tab')); });
+                });
+
+                function versionDate(v) {
+                    if (!v.timestamp) { return ''; }
+                    var d = new Date(v.timestamp);
+                    return isNaN(d) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                }
+
+                function renderSide() {
+                    var enabled = page.querySelector('#JsrchEnabled');
+                    enabled.checked = !!installed && installed.Status !== 'Disabled';
+                    enabled.disabled = !installed || installed.Status === 'Restart';
+                    page.querySelector('#JsrchUninstall').hidden = !installed || installed.CanUninstall === false;
+                    page.querySelector('#JsrchStatusCell').textContent = installed ? (STATUS[installed.Status] || installed.Status) : 'Non installé';
+                    page.querySelector('#JsrchVersion').textContent = installed ? installed.Version : '—';
+                    page.querySelector('#JsrchOwner').textContent = (pkg && pkg.owner) || 'webbackuper';
+                    var last = pkg && pkg.versions && pkg.versions[0];
+                    var repo = page.querySelector('#JsrchRepository');
+                    if (last && last.repositoryUrl) {
+                        repo.innerHTML = '<a href="' + esc(last.repositoryUrl) + '" target="_blank" rel="noopener">' + esc(last.repositoryName || last.repositoryUrl) + '</a>';
+                    } else {
+                        repo.textContent = '—';
+                    }
+                    page.querySelector('#JsrchDescription').textContent = (installed && installed.Description) || (pkg && (pkg.description || pkg.overview)) || '';
+                    var img = page.querySelector('#JsrchImage');
+                    if (installed && installed.HasImage) {
+                        img.onload = function () { img.hidden = false; };
+                        img.onerror = function () { img.hidden = true; };
+                        img.src = ApiClient.getUrl('Plugins/' + installed.Id + '/' + installed.Version + '/Image');
+                    }
+                }
+
+                function renderRevisions() {
+                    var box = page.querySelector('#JsrchRevisions');
+                    var versions = (pkg && pkg.versions) || [];
+                    if (!versions.length) {
+                        box.innerHTML = '<p class="jsrch-muted">Historique indisponible : le dépôt de plugins JellySearch n\'est pas joignable ou pas déclaré (Extensions &gt; Dépôts).</p>';
+                        return;
+                    }
+                    box.innerHTML = versions.map(function (v, i) {
+                        var current = installed && installed.Version === v.version;
+                        return '<div class="jsrch-rev"><div class="jsrch-rev-head"><b>' + esc(v.version) + '</b>'
+                            + '<span class="jsrch-muted">' + esc(versionDate(v)) + '</span>'
+                            + (current ? '<span class="jsrch-rev-badge">installée</span>' : '')
+                            + (current ? '' : '<button is="emby-button" type="button" class="raised emby-button" data-install="' + i + '"><span>Installer</span></button>')
+                            + '</div><p class="jsrch-rev-log">' + esc(v.changelog || '') + '</p></div>';
+                    }).join('');
+                    box.querySelectorAll('[data-install]').forEach(function (b) {
+                        b.addEventListener('click', function () {
+                            var v = versions[parseInt(b.getAttribute('data-install'), 10)];
+                            if (!window.confirm('Installer JellySearch ' + v.version + ' ? Jellyfin devra être redémarré.')) { return; }
+                            Dashboard.showLoadingMsg();
+                            ApiClient.ajax({
+                                type: 'POST',
+                                url: ApiClient.getUrl('Packages/Installed/' + encodeURIComponent(pluginName), { assemblyGuid: pluginId, version: v.version, repositoryUrl: v.repositoryUrl })
+                            }).then(function () {
+                                Dashboard.hideLoadingMsg();
+                                Dashboard.alert('JellySearch ' + v.version + ' est téléchargée. Redémarrez Jellyfin pour l\'utiliser.');
+                            }, function () {
+                                Dashboard.hideLoadingMsg();
+                                Dashboard.alert('L\'installation de JellySearch ' + v.version + ' a échoué.');
+                            });
+                        });
+                    });
+                }
+
+                function renderStatus() {
+                    ApiClient.getJSON(ApiClient.getUrl('JellySearch/Status')).then(function (st) {
+                        var imdb = st.ImdbRatings > 0
+                            ? st.ImdbRatings + ' notes IMDb' + (st.ImdbUpdatedAt ? ' (mises à jour le ' + new Date(st.ImdbUpdatedAt).toLocaleDateString() + ')' : '')
+                            : 'aucune note IMDb pour l\'instant';
+                        page.querySelector('#JsrchStatus').textContent = 'Index : ' + st.Indexed + ' éléments · ' + imdb + ' · ' + st.SavedSearches + ' recherche(s) enregistrée(s).';
+                    }, function () { page.querySelector('#JsrchStatus').textContent = ''; });
+                }
+
+                function loadPluginInfo() {
+                    var plugins = ApiClient.getInstalledPlugins().then(function (list) {
+                        installed = (list || []).filter(function (x) { return x.Id.replace(/-/g, '') === pluginId.replace(/-/g, ''); })[0] || null;
+                    }, function () { installed = null; });
+                    var packages = ApiClient.getJSON(ApiClient.getUrl('Packages/' + encodeURIComponent(pluginName), { assemblyGuid: pluginId })).then(function (p) {
+                        pkg = p || null;
+                    }, function () { pkg = null; });
+                    return Promise.all([plugins, packages]).then(function () {
+                        renderSide();
+                        renderRevisions();
+                    });
+                }
+
+                page.querySelector('#JsrchEnabled').addEventListener('change', function (e) {
+                    if (!installed) { return; }
+                    var action = e.target.checked ? 'Enable' : 'Disable';
+                    Dashboard.showLoadingMsg();
+                    ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Plugins/' + installed.Id + '/' + installed.Version + '/' + action) }).then(function () {
+                        return loadPluginInfo();
+                    }, function () {
+                        Dashboard.alert(action === 'Enable' ? 'Impossible d\'activer l\'extension.' : 'Impossible de désactiver l\'extension.');
+                        return loadPluginInfo();
+                    }).then(function () { Dashboard.hideLoadingMsg(); });
+                });
+
+                page.querySelector('#JsrchUninstall').addEventListener('click', function () {
+                    if (!installed || !window.confirm('Désinstaller JellySearch ? L\'extension sera retirée au prochain redémarrage de Jellyfin, avec les recherches enregistrées et les notes IMDb téléchargées.')) { return; }
+                    Dashboard.showLoadingMsg();
+                    ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Plugins/' + installed.Id + '/' + installed.Version) }).then(function () {
+                        return loadPluginInfo();
+                    }, function () {
+                        Dashboard.alert('La désinstallation a échoué.');
+                    }).then(function () { Dashboard.hideLoadingMsg(); });
+                });
+
+                page.addEventListener('pageshow', function () {
+                    showTab('settings');
+                    loadPluginInfo();
+                    renderStatus();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        texts.forEach(function (k) { page.querySelector('#' + k).value = config[k] || ''; });
+                        checks.forEach(function (k) { page.querySelector('#' + k).checked = !!config[k]; });
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+                page.querySelector('#JellySearchConfigForm').addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        texts.forEach(function (k) { config[k] = page.querySelector('#' + k).value; });
+                        checks.forEach(function (k) { config[k] = page.querySelector('#' + k).checked; });
+                        ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+                    return false;
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

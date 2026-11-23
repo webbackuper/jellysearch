@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Jellyfin.Plugin.JellySearch</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <JellyfinBinDir Condition="'$(JellyfinBinDir)' == ''">/usr/lib/jellyfin/bin</JellyfinBinDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Jellyfin.Controller" Version="12.4.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model" Version="12.4.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <!-- shipped with Jellyfin (its image processing): used to turn the tile images into PNG for the TV app -->
+    <Reference Include="SkiaSharp">
+      <HintPath>$(JellyfinBinDir)/SkiaSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Svg.Skia">
+      <HintPath>$(JellyfinBinDir)/Svg.Skia.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Svg.Model">
+      <HintPath>$(JellyfinBinDir)/Svg.Model.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ShimSkiaSharp">
+      <HintPath>$(JellyfinBinDir)/ShimSkiaSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+    <None Remove="Web\jellysearch.js" />
+    <EmbeddedResource Include="Web\jellysearch.js" />
+    <EmbeddedResource Include="..\assets\jellysearch.png" LogicalName="Jellyfin.Plugin.JellySearch.jellysearch.png" />
+    <InternalsVisibleTo Include="Jellyfin.Plugin.JellySearch.Tests" />
+  </ItemGroup>
+
+</Project>
