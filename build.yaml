@@ -1,7 +1,7 @@
 ---
 name: "JellySearch"
 guid: "8b8ecb0d-b645-48ad-a58a-2e79c932f0c7"
-version: "1.0.0.0"
+version: "1.1.0.0"
 targetAbi: "12.4.0.0"
 framework: "net10.0"
 overview: "Recherche tolérante (accents, fautes), filtres combinables et recherches enregistrées en tuiles, sur le web et la TV"
