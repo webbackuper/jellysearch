@@ -192,7 +192,28 @@ public class FilterTests
     {
         Assert.Equal("Amour", Library.Names("genre:drame type:film tri:annee").First());
         Assert.Equal("1984", Library.Names("genre:drame type:film tri:ancien").First());
-        Assert.Equal("La Guerre des étoiles", Library.Names("genre:science-fiction").First());
+        // filters only: by IMDb rating unless the settings ask for another order
+        Assert.Equal("Alien, le huitième passager", Library.Names("genre:science-fiction").First());
+        var tmdb = new SearchContext { Imdb = Library.Context().Imdb, DefaultSort = SortKey.Tmdb };
+        Assert.Equal("La Guerre des étoiles", Library.Names("genre:science-fiction", tmdb).First());
+        Assert.Equal(SortKey.Imdb, SearchEngine.Search(Library.Index, "genre:science-fiction", Library.Context()).Sort);
+        Assert.Equal(SortKey.Relevance, SearchEngine.Search(Library.Index, "alien", Library.Context()).Sort);
+        Assert.Equal(SortKey.YearNewest, SearchEngine.Search(Library.Index, "alien tri:annee", Library.Context()).Sort);
+    }
+
+    [Fact]
+    public void Syntax_keeps_the_order()
+    {
+        var parsed = QueryParser.Parse("genre:drame tri:ajout", Library.Index);
+        Assert.Equal("genre:Drame tri:ajout", parsed.Syntax);
+        Assert.Contains("tri par date d'ajout", parsed.Description);
+        Assert.Equal(SortKey.Added, QueryParser.Parse(parsed.Syntax, Library.Index).Sort);
+        Assert.True(parsed.HasFilters);
+        Assert.False(QueryParser.Parse("alien", Library.Index).HasFilters);
+        Assert.True(QueryParser.Parse("alien -aliens", Library.Index).HasFilters);
+        Assert.Equal(SortKey.Imdb, ParsedQuery.SortOf("IMDb"));
+        Assert.Equal(SortKey.Tmdb, ParsedQuery.SortOf("note"));
+        Assert.Null(ParsedQuery.SortOf("n'importe"));
     }
 
     [Fact]

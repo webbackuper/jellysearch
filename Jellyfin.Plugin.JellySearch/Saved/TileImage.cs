@@ -68,6 +68,66 @@ public static class TileImage
         return sb.ToString();
     }
 
+    /// <summary>
+    /// The card of the results of a TV search (16:9, the shape the TV app gives to libraries): the number of
+    /// results, what was understood, the order, and "Tout voir".
+    /// </summary>
+    public static string ResultsSvg(int count, string description, string sortLabel)
+    {
+        var hue = Hue(description.Length > 0 ? description : "jellysearch");
+        var dark = Hsl(hue, 0.50, 0.13);
+        var mid = Hsl(hue, 0.55, 0.30);
+        var accent = Hsl(hue, 0.85, 0.64);
+        var number = count.ToString("N0", CultureInfo.GetCultureInfo("fr-FR")).Replace('\u202f', ' ').Replace('\u00a0', ' ');
+        var size = number.Length <= 3 ? 190 : number.Length <= 5 ? 150 : 120;
+        var wordX = 56 + (int)(number.Length * size * 0.66) + 24;
+        var lines = Wrap(description, 34, 2).Select(Escape).ToArray();
+        var sb = new StringBuilder();
+        sb.Append(CultureInfo.InvariantCulture, $"""
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="{mid}"/>
+      <stop offset="1" stop-color="{dark}"/>
+    </linearGradient>
+    <linearGradient id="jf" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#aa5cc3"/>
+      <stop offset="1" stop-color="#00a4dc"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <circle cx="705" cy="78" r="38" fill="none" stroke="{accent}" stroke-width="11"/>
+  <line x1="733" y1="106" x2="764" y2="137" stroke="{accent}" stroke-width="15" stroke-linecap="round"/>
+  <text x="50" y="205" font-family="DejaVu Sans, Noto Sans, Arial, sans-serif" font-size="{size}" font-weight="bold" fill="#ffffff">{Escape(number)}</text>
+  <text x="{wordX}" y="205" font-family="DejaVu Sans, Noto Sans, Arial, sans-serif" font-size="58" fill="#ffffff">{(count == 1 ? "résultat" : "résultats")}</text>
+  <rect x="56" y="236" width="110" height="8" rx="4" fill="url(#jf)"/>
+""");
+        for (var i = 0; i < lines.Length; i++)
+        {
+            sb.Append(CultureInfo.InvariantCulture, $"""  <text x="56" y="{292 + (i * 42)}" font-family="DejaVu Sans, Noto Sans, Arial, sans-serif" font-size="34" fill="#ffffff" fill-opacity="0.88">{lines[i]}</text>""").Append('\n');
+        }
+
+        sb.Append(CultureInfo.InvariantCulture, $"""
+  <text x="56" y="412" font-family="DejaVu Sans, Noto Sans, Arial, sans-serif" font-size="28" fill="#ffffff" fill-opacity="0.72">{Escape(Shorten("Tri : " + sortLabel, 30))}</text>
+  <rect x="520" y="370" width="240" height="56" rx="28" fill="{accent}"/>
+  <text x="640" y="408" text-anchor="middle" font-family="DejaVu Sans, Noto Sans, Arial, sans-serif" font-size="31" font-weight="bold" fill="#10131a">Tout voir  ›</text>
+</svg>
+""");
+        return sb.ToString();
+    }
+
+    /// <summary>The card of the results of a TV search as PNG, <paramref name="width"/> pixels wide.</summary>
+    public static byte[] ResultsPng(int count, string description, string sortLabel, int width = 800)
+    {
+        width = Math.Clamp(width, 160, 1920);
+        if (Cache.Count > 400)
+        {
+            Cache.Clear();
+        }
+
+        return Cache.GetOrAdd("\u0003" + count + "\u0001" + description + "\u0001" + sortLabel + "\u0001" + width, _ => Render(ResultsSvg(count, description, sortLabel), width));
+    }
+
     /// <summary>The tile as PNG, <paramref name="width"/> pixels wide.</summary>
     public static byte[] Png(string name, string description, int width = 960)
     {

@@ -2,13 +2,15 @@
  * The search itself is done by the server (every client benefits, the TV app too). This script adds, in
  * the web client:
  * 1. on the search page: how the search was understood ("Compris : …"), a filter panel (field, operator,
- *    value; ET / OU), the syntax help, and "Créer une tuile" to save the search;
+ *    value; ET / OU), the syntax help, and "Créer une tuile" to save the search; the results in a grid of
+ *    4 rows per page (or a list) with their number, by kind, in the order chosen (IMDb rating by default
+ *    for filters), in place of Jellyfin's rows of movies, series, episodes and collections;
  * 2. the saved searches as tiles in "My media" on the home page;
  * 3. the IMDb rating next to Jellyfin's rating on the details page.
  */
 (function () {
     'use strict';
-    var SETTINGS = /*JELLYSEARCH_SETTINGS*/null || { search: true, filterPanel: true, explain: true, ratingsBadge: true, savedTiles: true };
+    var SETTINGS = /*JELLYSEARCH_SETTINGS*/null || { search: true, filterPanel: true, explain: true, ratingsBadge: true, savedTiles: true, resultsGrid: true };
     var PREFIX = 'jsearch';
 
     function api() { return window.ApiClient; }
@@ -87,6 +89,57 @@
             + '.jsearch-toast.show{opacity:1;transform:translate(-50%,0)}'
             + '.jsearch-imdb{display:inline-flex;align-items:center;gap:.35em}'
             + '.jsearch-imdb-logo{background:#f5c518;color:#000;font-weight:800;font-size:.72em;border-radius:.2em;padding:.05em .3em;letter-spacing:.02em}'
+            + '.jsearch-results{margin-top:1.2em}'
+            + '.jsearch-results[hidden]{display:none}'
+            + '.jsearch-rhead{display:flex;flex-wrap:wrap;align-items:center;gap:.6em 1.2em;margin-bottom:.9em}'
+            + '.jsearch-count{font-size:1.5em;font-weight:600;white-space:nowrap}'
+            + '.jsearch-count small{font-size:.62em;font-weight:400;opacity:.7;margin-left:.35em}'
+            + '.jsearch-tabs{display:flex;flex-wrap:wrap;gap:.4em}'
+            + '.jsearch-tab{background:rgba(128,128,128,.18);color:inherit;border:0;border-radius:2em;padding:.3em .9em;font:inherit;font-size:.88em;cursor:pointer}'
+            + '.jsearch-tab:hover,.jsearch-tab:focus{background:rgba(128,128,128,.35);outline:none}'
+            + '.jsearch-tab.on{background:#00a4dc;color:#fff}'
+            + '.jsearch-rtools{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:.5em .8em}'
+            + '.jsearch-rtools label{display:inline-flex;align-items:center;gap:.4em;font-size:.9em;opacity:.9}'
+            + '.jsearch-rtools select{font:inherit;color:inherit;background:rgba(0,0,0,.25);border:1px solid rgba(128,128,128,.45);border-radius:.3em;padding:.35em .5em}'
+            + '.jsearch-rtools select option{color:#000}'
+            + '.jsearch-views{display:inline-flex;border-radius:2em;overflow:hidden;background:rgba(128,128,128,.18)}'
+            + '.jsearch-views button{background:none;border:0;color:inherit;padding:.3em .6em;cursor:pointer;display:inline-flex}'
+            + '.jsearch-views button.on{background:#00a4dc;color:#fff}'
+            + '.jsearch-pager{display:inline-flex;align-items:center;gap:.25em;white-space:nowrap}'
+            + '.jsearch-pager span{font-size:.88em;opacity:.8;margin-right:.2em}'
+            + '.jsearch-pager button{background:rgba(128,128,128,.18);color:inherit;border:0;border-radius:50%;width:2.3em;height:2.3em;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}'
+            + '.jsearch-pager button:hover:not(:disabled),.jsearch-pager button:focus:not(:disabled){background:rgba(128,128,128,.4);outline:none}'
+            + '.jsearch-pager button:disabled{opacity:.3;cursor:default}'
+            + '.jsearch-rfoot{display:flex;justify-content:flex-end;margin-top:1em}'
+            + '.jsearch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5em,1fr));gap:1.3em .9em}'
+            + '.jsearch-card{display:block;color:inherit;text-decoration:none;min-width:0;outline:none}'
+            + '.jsearch-poster{position:relative;aspect-ratio:2/3;border-radius:.35em;overflow:hidden;background:#262626 center/cover no-repeat;box-shadow:0 .15em .5em rgba(0,0,0,.35);transition:transform .15s}'
+            + '.jsearch-card:hover .jsearch-poster,.jsearch-card:focus .jsearch-poster{transform:scale(1.03);box-shadow:0 0 0 .2em #00a4dc}'
+            + '.jsearch-noimg{display:flex;align-items:center;justify-content:center;text-align:center;padding:.6em;box-sizing:border-box;font-size:.95em;opacity:.8}'
+            + '.jsearch-played{position:absolute;top:.35em;right:.35em;background:#00a4dc;color:#fff;border-radius:50%;width:1.5em;height:1.5em;display:flex;align-items:center;justify-content:center}'
+            + '.jsearch-played .material-icons{font-size:1.05em}'
+            + '.jsearch-kind{position:absolute;left:.35em;bottom:.35em;background:rgba(0,0,0,.7);color:#fff;border-radius:.25em;padding:.05em .4em;font-size:.72em}'
+            + '.jsearch-title{margin-top:.45em;font-size:.95em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+            + '.jsearch-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.2em .5em;font-size:.8em;opacity:.78;min-height:1.3em}'
+            + '.jsearch-star{color:#f5c518}'
+            + '.jsearch-list{width:100%;border-collapse:collapse}'
+            + '.jsearch-list td,.jsearch-list th{padding:.35em .6em;text-align:left;vertical-align:middle}'
+            + '.jsearch-list th{font-weight:600;font-size:.85em;opacity:.7;border-bottom:1px solid rgba(128,128,128,.35)}'
+            + '.jsearch-list tr+tr td{border-top:1px solid rgba(128,128,128,.15)}'
+            + '.jsearch-list tbody tr:hover{background:rgba(128,128,128,.12)}'
+            + '.jsearch-list a{color:inherit;text-decoration:none;font-weight:500}'
+            + '.jsearch-list a:hover,.jsearch-list a:focus{text-decoration:underline}'
+            + '.jsearch-list .jsearch-thumb{width:2.6em;height:3.9em;border-radius:.2em;background:#262626 center/cover no-repeat;display:block}'
+            + '.jsearch-list .jsearch-num{text-align:right;white-space:nowrap}'
+            + '.jsearch-list .jsearch-genres{opacity:.75;font-size:.88em}'
+            + '.jsearch-empty{opacity:.7;padding:.5em 0}'
+            // the JellySearch grid replaces Jellyfin's rows of movies, series, episodes and collections
+            + 'body.jsearch-grid-on #searchPage .searchResults .verticalSection:has(.card[data-type="Movie"]),'
+            + 'body.jsearch-grid-on #searchPage .searchResults .verticalSection:has(.card[data-type="Series"]),'
+            + 'body.jsearch-grid-on #searchPage .searchResults .verticalSection:has(.card[data-type="Episode"]),'
+            + 'body.jsearch-grid-on #searchPage .searchResults .verticalSection:has(.card[data-type="BoxSet"]){display:none}'
+            + '@media (max-width:700px){.jsearch-grid{grid-template-columns:repeat(auto-fill,minmax(6.8em,1fr));gap:1em .6em}.jsearch-rtools{margin-left:0;width:100%}'
+            + '.jsearch-pager{margin-left:auto}.jsearch-list .jsearch-hide-s{display:none}}'
             + '@media (max-width:600px){.jsearch-understood code{display:none}}';
         document.head.appendChild(st);
     }
@@ -397,6 +450,14 @@
             });
         }
 
+        if (SETTINGS.resultsGrid) {
+            var box = document.createElement('div');
+            box.className = 'jsearch-results padded-left padded-right';
+            box.hidden = true;
+            (panel || help).insertAdjacentElement('afterend', box);
+            bindResults(box);
+        }
+
         function toggle(el, button) {
             var open = el.hidden;
             el.hidden = !open;
@@ -438,7 +499,8 @@
         save.addEventListener('submit', function (e) {
             e.preventDefault();
             var name = save.querySelector('input').value.trim();
-            var q = currentQuery().trim();
+            // the order chosen in the grid goes with the tile
+            var q = currentQuery().trim() + (results.q === currentQuery().trim() && results.sort ? ' tri:' + results.sort : '');
             if (!name || !q) { return; }
             send('POST', 'JellySearch/Saved', { Name: name, Query: q }).then(function (s) {
                 save.hidden = true;
@@ -461,6 +523,7 @@
         bar.setAttribute('data-q', q);
         clearTimeout(explainTimer);
         explainTimer = setTimeout(function () { explain(bar, q); }, now ? 0 : 450);
+        resultsSoon(q, now);
     }
 
     function explain(bar, q) {
@@ -480,6 +543,261 @@
                 : '<b>Compris :</b> ' + esc(r.Description) + (r.NaturalLanguage ? '<code>' + esc(r.Syntax) + '</code>' : '');
         });
     }
+
+    /* ---------- 1b. the results: their number, their order, a grid of 4 rows per page ---------- */
+    var RESULT_SORTS = [['pertinence', 'Pertinence'], ['imdb', 'Note IMDb'], ['note', 'Note TMDB'], ['critique', 'Note critique'],
+        ['annee', 'Année (récents)'], ['ancien', 'Année (anciens)'], ['ajout', 'Ajout récent'], ['titre', 'Titre'], ['duree', 'Durée'], ['hasard', 'Hasard']];
+    var KINDS = [['', 'Tout'], ['Movie', 'Films'], ['Series', 'Séries'], ['Episode', 'Épisodes'], ['BoxSet', 'Collections']];
+    var KIND_LABEL = { Movie: 'Film', Series: 'Série', Episode: 'Épisode', BoxSet: 'Collection' };
+    var ROWS = 4;
+    var LIST_PAGE = 30;
+    var results = { q: null, sort: '', type: '', start: 0, seq: 0, data: null, items: [] };
+    var resultsTimer = null;
+
+    function storage(key, value) {
+        try {
+            if (value === undefined) { return window.sessionStorage.getItem(PREFIX + '-' + key); }
+            window.sessionStorage.setItem(PREFIX + '-' + key, value);
+        } catch (e) { /* private mode */ }
+        return null;
+    }
+
+    function viewMode() {
+        try { return window.localStorage.getItem(PREFIX + '-view') === 'list' ? 'list' : 'grid'; } catch (e) { return 'grid'; }
+    }
+
+    function setViewMode(mode) {
+        try { window.localStorage.setItem(PREFIX + '-view', mode); } catch (e) { /* private mode */ }
+    }
+
+    function resultsBox() {
+        var page = searchPage();
+        return page ? page.querySelector('.jsearch-results') : null;
+    }
+
+    // a page fills 4 rows of posters at the current width (30 lines in the list)
+    function pageSize(box) {
+        if (viewMode() === 'list' || !box) { return LIST_PAGE; }
+        // the number of columns the CSS grid makes at this width, measured on an empty grid
+        var hidden = box.hidden;
+        box.hidden = false;
+        var probe = document.createElement('div');
+        probe.className = 'jsearch-grid';
+        probe.style.cssText = 'visibility:hidden;height:0;overflow:hidden';
+        probe.innerHTML = '<div></div>';
+        box.appendChild(probe);
+        var cols = getComputedStyle(probe).gridTemplateColumns.split(' ').filter(Boolean).length;
+        probe.remove();
+        box.hidden = hidden;
+        return Math.max(2, cols || 0) * ROWS;
+    }
+
+    function fr(n, digits) { return Number(n).toFixed(digits).replace('.', ','); }
+
+    function plural(n, one, many) { return n + ' ' + (n > 1 ? many : one); }
+
+    function resultsSoon(q, now) {
+        if (!SETTINGS.resultsGrid) { return; }
+        clearTimeout(resultsTimer);
+        resultsTimer = setTimeout(function () {
+            if (q !== results.q) {
+                // a new search: its default order (IMDb for filters, relevance for words), first page;
+                // coming back to the same search (from a details page) restores its page and order
+                var kept = null;
+                try { kept = JSON.parse(storage('results') || 'null'); } catch (e) { kept = null; }
+                results.q = q;
+                results.sort = kept && kept.q === q ? kept.sort : '';
+                results.type = kept && kept.q === q ? kept.type : '';
+                results.start = kept && kept.q === q ? kept.start : 0;
+            }
+            loadResults();
+        }, now ? 0 : 450);
+    }
+
+    function saveResultsState() {
+        storage('results', JSON.stringify({ q: results.q, sort: results.sort, type: results.type, start: results.start }));
+    }
+
+    function loadResults() {
+        var box = resultsBox();
+        var q = results.q || '';
+        if (!box) { return; }
+        if (!q.trim()) {
+            box.hidden = true;
+            document.body.classList.remove('jsearch-grid-on');
+            return;
+        }
+        var seq = ++results.seq;
+        var limit = pageSize(box);
+        results.start = Math.floor(results.start / limit) * limit;
+        getJson('JellySearch/Results', { q: q, sort: results.sort, types: results.type, start: results.start, limit: limit }).then(function (r) {
+            if (seq !== results.seq) { return null; }
+            results.data = r;
+            if (r.Total > 0 && results.start >= r.Total) {
+                results.start = 0;
+                return loadResults();
+            }
+            if (!r.Ids.length) { return renderResults([]); }
+            return api().getItems(api().getCurrentUserId(), {
+                Ids: r.Ids.join(','),
+                Fields: 'PrimaryImageAspectRatio,ProductionYear,Genres,RunTimeTicks',
+                EnableImageTypes: 'Primary',
+                ImageTypeLimit: 1,
+                EnableUserData: true
+            }).then(function (items) {
+                if (seq !== results.seq) { return; }
+                var byId = {};
+                (items.Items || []).forEach(function (i) { byId[plainId(i.Id)] = i; });
+                renderResults(r.Ids.map(function (id) { return byId[plainId(id)]; }).filter(Boolean));
+            });
+        }, function () {
+            if (seq !== results.seq) { return; }
+            box.hidden = true;
+            document.body.classList.remove('jsearch-grid-on');
+        });
+    }
+
+    function plainId(id) { return String(id || '').replace(/-/g, '').toLowerCase(); }
+
+    function imdbOf(r, item) { return r.Imdb[plainId(item.Id)]; }
+
+    function itemHref(item) { return '#/details?id=' + item.Id + '&serverId=' + (item.ServerId || api().serverId()); }
+
+    function posterUrl(item, height) {
+        var tag = item.ImageTags && item.ImageTags.Primary;
+        return tag ? api().getUrl('Items/' + item.Id + '/Images/Primary', { fillHeight: height, fillWidth: Math.round(height * 2 / 3), quality: 90, tag: tag }) : null;
+    }
+
+    function metaHtml(item, imdb, withKind) {
+        var parts = [];
+        if (withKind && KIND_LABEL[item.Type]) { parts.push(esc(KIND_LABEL[item.Type])); }
+        if (item.ProductionYear) { parts.push(String(item.ProductionYear)); }
+        if (imdb) {
+            parts.push('<span class="jsearch-imdb" title="Note IMDb (' + esc(plural(imdb.Votes, 'vote', 'votes')) + ')"><span class="jsearch-imdb-logo">IMDb</span>' + fr(imdb.Rating, 1) + '</span>');
+        } else if (item.CommunityRating) {
+            parts.push('<span title="Note TMDB"><span class="jsearch-star">★</span> ' + fr(item.CommunityRating, 1) + '</span>');
+        }
+        return parts.join('<span aria-hidden="true">·</span>');
+    }
+
+    function minutes(item) {
+        if (!item.RunTimeTicks) { return ''; }
+        var m = Math.round(item.RunTimeTicks / 600000000);
+        if (m < 1) { return ''; }
+        return m >= 60 ? Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') : m + ' min';
+    }
+
+    function gridHtml(items, r, mixed) {
+        return '<div class="jsearch-grid" role="list">' + items.map(function (item) {
+            var url = posterUrl(item, 420);
+            var played = item.UserData && item.UserData.Played;
+            return '<a class="jsearch-card" role="listitem" href="' + esc(itemHref(item)) + '" title="' + esc(item.Name) + '">'
+                + '<div class="jsearch-poster' + (url ? '' : ' jsearch-noimg') + '"' + (url ? ' style="background-image:url(\'' + esc(url) + '\')"' : '') + '>'
+                + (url ? '' : esc(item.Name))
+                + (played ? '<span class="jsearch-played" title="Déjà vu"><span class="material-icons" aria-hidden="true">check</span></span>' : '')
+                + (mixed && KIND_LABEL[item.Type] && item.Type !== 'Movie' ? '<span class="jsearch-kind">' + esc(KIND_LABEL[item.Type]) + '</span>' : '')
+                + '</div><div class="jsearch-title">' + esc(item.Name) + '</div>'
+                + '<div class="jsearch-meta">' + metaHtml(item, imdbOf(r, item), false) + '</div></a>';
+        }).join('') + '</div>';
+    }
+
+    function listHtml(items, r) {
+        return '<table class="jsearch-list"><thead><tr><th></th><th>Titre</th><th class="jsearch-hide-s">Type</th><th>Année</th>'
+            + '<th class="jsearch-num">IMDb</th><th class="jsearch-num jsearch-hide-s">TMDB</th><th class="jsearch-num jsearch-hide-s">Durée</th><th class="jsearch-hide-s">Genres</th></tr></thead><tbody>'
+            + items.map(function (item) {
+                var url = posterUrl(item, 120);
+                var imdb = imdbOf(r, item);
+                return '<tr><td><a href="' + esc(itemHref(item)) + '" tabindex="-1" aria-hidden="true"><span class="jsearch-thumb"' + (url ? ' style="background-image:url(\'' + esc(url) + '\')"' : '') + '></span></a></td>'
+                    + '<td><a href="' + esc(itemHref(item)) + '">' + esc(item.Name) + '</a>' + (item.UserData && item.UserData.Played ? ' <span class="material-icons" title="Déjà vu" style="font-size:1em;vertical-align:-.15em;opacity:.7">check</span>' : '') + '</td>'
+                    + '<td class="jsearch-hide-s">' + esc(KIND_LABEL[item.Type] || '') + '</td>'
+                    + '<td>' + (item.ProductionYear || '') + '</td>'
+                    + '<td class="jsearch-num">' + (imdb ? '<span class="jsearch-imdb" title="' + esc(plural(imdb.Votes, 'vote', 'votes')) + '"><span class="jsearch-imdb-logo">IMDb</span>' + fr(imdb.Rating, 1) + '</span>' : '') + '</td>'
+                    + '<td class="jsearch-num jsearch-hide-s">' + (item.CommunityRating ? '<span class="jsearch-star">★</span> ' + fr(item.CommunityRating, 1) : '') + '</td>'
+                    + '<td class="jsearch-num jsearch-hide-s">' + minutes(item) + '</td>'
+                    + '<td class="jsearch-genres jsearch-hide-s">' + esc((item.Genres || []).slice(0, 3).join(', ')) + '</td></tr>';
+            }).join('') + '</tbody></table>';
+    }
+
+    function pagerHtml(r, size) {
+        var first = r.Total ? results.start + 1 : 0;
+        var last = Math.min(r.Total, results.start + size);
+        return '<span class="jsearch-pager"><span>' + first + '–' + last + ' sur ' + r.Total + '</span>'
+            + '<button type="button" data-page="-1" title="Résultats précédents" aria-label="Résultats précédents"' + (results.start <= 0 ? ' disabled' : '') + '><span class="material-icons" aria-hidden="true">chevron_left</span></button>'
+            + '<button type="button" data-page="1" title="Résultats suivants" aria-label="Résultats suivants"' + (last >= r.Total ? ' disabled' : '') + '><span class="material-icons" aria-hidden="true">chevron_right</span></button></span>';
+    }
+
+    function renderResults(items) {
+        var box = resultsBox();
+        var r = results.data;
+        if (!box || !r) { return; }
+        var all = 0;
+        Object.keys(r.Counts).forEach(function (k) { all += r.Counts[k]; });
+        if (!all) {
+            box.hidden = true;
+            document.body.classList.remove('jsearch-grid-on');
+            return;
+        }
+        box.hidden = false;
+        document.body.classList.add('jsearch-grid-on');
+        var size = pageSize(box);
+        var kinds = KINDS.filter(function (k) { return k[0] === '' || r.Counts[k[0]]; });
+        var sorts = RESULT_SORTS.filter(function (s) { return s[0] !== 'pertinence' || r.HasText; });
+        if (!sorts.some(function (s) { return s[0] === r.Sort; })) { sorts.unshift([r.Sort, r.SortLabel]); }
+        var mode = viewMode();
+        box.innerHTML = '<div class="jsearch-rhead">'
+            + '<span class="jsearch-count" aria-live="polite">' + plural(all, 'résultat', 'résultats')
+            + (results.type && r.Total !== all ? '<small>dont ' + r.Total + ' ' + esc(KINDS.filter(function (k) { return k[0] === results.type; })[0][1].toLowerCase()) + '</small>' : '') + '</span>'
+            + (kinds.length > 2 ? '<span class="jsearch-tabs" role="group" aria-label="Type">' + kinds.map(function (k) {
+                var n = k[0] ? r.Counts[k[0]] : all;
+                return '<button type="button" class="jsearch-tab' + (results.type === k[0] ? ' on' : '') + '" data-type="' + k[0] + '" aria-pressed="' + (results.type === k[0]) + '">' + esc(k[1]) + ' (' + n + ')</button>';
+            }).join('') + '</span>' : '')
+            + '<span class="jsearch-rtools"><label>Trier par <select class="jsearch-rsort" aria-label="Trier par">' + sorts.map(function (s) {
+                return '<option value="' + s[0] + '"' + (s[0] === r.Sort ? ' selected' : '') + '>' + esc(s[1]) + '</option>';
+            }).join('') + '</select></label>'
+            + '<span class="jsearch-views" role="group" aria-label="Affichage">'
+            + '<button type="button" data-view="grid" class="' + (mode === 'grid' ? 'on' : '') + '" title="Affiches" aria-label="Affiches" aria-pressed="' + (mode === 'grid') + '"><span class="material-icons" aria-hidden="true">grid_view</span></button>'
+            + '<button type="button" data-view="list" class="' + (mode === 'list' ? 'on' : '') + '" title="Liste" aria-label="Liste" aria-pressed="' + (mode === 'list') + '"><span class="material-icons" aria-hidden="true">view_list</span></button></span>'
+            + pagerHtml(r, size) + '</span></div>'
+            + (items.length ? (mode === 'list' ? listHtml(items, r) : gridHtml(items, r, !results.type && kinds.length > 2)) : '<p class="jsearch-empty">Aucun résultat de ce type.</p>')
+            + (r.Total > size ? '<div class="jsearch-rfoot">' + pagerHtml(r, size) + '</div>' : '');
+        saveResultsState();
+    }
+
+    function bindResults(box) {
+        box.addEventListener('click', function (e) {
+            var b = e.target.closest('button');
+            if (!b || !results.data) { return; }
+            var size = pageSize(box);
+            if (b.hasAttribute('data-page')) {
+                var top = b.closest('.jsearch-rfoot');
+                results.start = Math.max(0, results.start + parseInt(b.getAttribute('data-page'), 10) * size);
+                loadResults();
+                if (top) { window.scrollTo({ top: Math.max(0, box.getBoundingClientRect().top + window.pageYOffset - 90), behavior: 'smooth' }); }
+            } else if (b.hasAttribute('data-type')) {
+                results.type = b.getAttribute('data-type');
+                results.start = 0;
+                loadResults();
+            } else if (b.hasAttribute('data-view')) {
+                setViewMode(b.getAttribute('data-view'));
+                results.start = 0;
+                loadResults();
+            }
+        });
+        box.addEventListener('change', function (e) {
+            if (!e.target.classList.contains('jsearch-rsort')) { return; }
+            results.sort = e.target.value;
+            results.start = 0;
+            loadResults();
+        });
+    }
+
+    var lastWidth = window.innerWidth;
+    window.addEventListener('resize', function () {
+        if (Math.abs(window.innerWidth - lastWidth) < 40 || !resultsBox() || !results.data) { return; }
+        lastWidth = window.innerWidth;
+        clearTimeout(resultsTimer);
+        resultsTimer = setTimeout(loadResults, 300);
+    });
 
     /* ---------- 2. saved searches as tiles in My media ---------- */
     var savedCache = null;

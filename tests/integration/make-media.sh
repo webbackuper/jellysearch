@@ -78,7 +78,39 @@ EOF
 IMDB="$(dirname "$DIR")/imdb"
 mkdir -p "$IMDB"
 printf 'tconst\taverageRating\tnumVotes\ntt0000001\t5.7\t2100\ntt0073195\t8.1\t680000\ntt0078748\t8.5\t950000\ntt0090605\t8.4\t760000\ntt0099348\t8.0\t290000\ntt0107290\t8.2\t1100000\ntt0109686\t7.3\t420000\ntt0110475\t6.9\t400000\ntt0211915\t8.3\t780000\ntt0453467\t7.0\t290000\ntt0903747\t9.5\t2200000\n' \
-    | gzip -c > "$IMDB/title.ratings.tsv.gz"
+    > "$IMDB/title.ratings.tsv"
+
+# JELLYSEARCH_EXTRA_MOVIES=<n>: n more documentaries on MOVIES07, for trying the result pages by hand
+# (genre "Documentaire" and words "archive", absent from the other films: the checks are not changed)
+EXTRA=${JELLYSEARCH_EXTRA_MOVIES:-0}
+if [ "$EXTRA" -gt 0 ]; then
+    M7="$DIR/MOVIES07/MOVIES07"
+    mkdir -p "$M7"
+    video "$M7/.base.mkv"
+    for i in $(seq 1 "$EXTRA"); do
+        n=$(printf '%03d' "$i")
+        year=$((1960 + (i * 7) % 64))
+        tmdb=$(LC_ALL=C awk -v i="$i" 'BEGIN { printf "%.1f", 4 + ((i * 37) % 50) / 10 }')
+        imdb=$(LC_ALL=C awk -v i="$i" 'BEGIN { printf "%.1f", 4.5 + ((i * 53) % 45) / 10 }')
+        ln "$M7/.base.mkv" "$M7/Archive $n ($year).mkv"
+        cat > "$M7/Archive $n ($year).nfo" <<NFO
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<movie>
+  <title>Archive $n</title>
+  <plot>Documentaire d'archive numéro $n.</plot>
+  <year>$year</year>
+  <ratings><rating name="themoviedb" max="10" default="true"><value>$tmdb</value></rating></ratings>
+  <uniqueid type="imdb">tt99$(printf '%05d' "$i")</uniqueid>
+  <genre>Documentaire</genre>
+  <runtime>$((60 + (i * 13) % 90))</runtime>
+</movie>
+NFO
+        printf 'tt99%05d\t%s\t%d\n' "$i" "$imdb" $((1000 + i * 917)) >> "$IMDB/title.ratings.tsv"
+    done
+    rm -f "$M7/.base.mkv"
+fi
+gzip -c "$IMDB/title.ratings.tsv" > "$IMDB/title.ratings.tsv.gz"
+rm -f "$IMDB/title.ratings.tsv"
 
 echo "Test media written to $DIR"
 find "$DIR" -type f -name "*.mkv" | sort

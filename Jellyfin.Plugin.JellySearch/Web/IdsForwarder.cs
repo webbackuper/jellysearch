@@ -22,8 +22,11 @@ public static class IdsForwarder
         "searchTerm", "startIndex", "limit", "sortBy", "sortOrder", "parentId", "ids", "enableTotalRecordCount", "recursive", "nameStartsWith", "nameStartsWithOrGreater", "nameLessThan"
     };
 
-    /// <summary>Answers with the items <paramref name="page"/>, in that order; <paramref name="total"/> is the number of results of every page.</summary>
-    public static async Task ForwardAsync(HttpContext context, RequestDelegate next, IReadOnlyList<Guid> page, int total, int start, string? understood)
+    /// <summary>
+    /// Answers with the items <paramref name="page"/>, in that order; <paramref name="total"/> is the number of
+    /// results of every page. <paramref name="first"/> (an item made by JellySearch) is put before them.
+    /// </summary>
+    public static async Task ForwardAsync(HttpContext context, RequestDelegate next, IReadOnlyList<Guid> page, int total, int start, string? understood, JsonNode? first = null)
     {
         if (understood is not null)
         {
@@ -87,6 +90,11 @@ public static class IdsForwarder
                 .OrderBy(n => order.TryGetValue((n["Id"]?.GetValue<string>() ?? string.Empty).Replace("-", string.Empty, StringComparison.Ordinal), out var o) ? o : int.MaxValue)
                 .ToList();
             items.Clear();
+            if (first is not null)
+            {
+                items.Add(first);
+            }
+
             foreach (var n in sorted)
             {
                 items.Add(n);

@@ -26,6 +26,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<ImdbRatings>();
         serviceCollection.AddSingleton<SearchService>();
         serviceCollection.AddSingleton<SavedSearchStore>();
+        serviceCollection.AddSingleton<ResultViews>();
         serviceCollection.AddSingleton<UninstallCleaner>();
         serviceCollection.AddHostedService<UninstallCleaner.Starter>();
         serviceCollection.AddTransient<IStartupFilter, JellySearchStartupFilter>();

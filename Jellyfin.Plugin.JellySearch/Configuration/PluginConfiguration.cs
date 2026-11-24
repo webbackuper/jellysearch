@@ -23,6 +23,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>Gets or sets a value indicating whether the free text is also searched in the genres, tags and studios.</summary>
     public bool SearchTags { get; set; } = true;
 
+    /// <summary>Gets or sets the order of the searches without words (filters only): imdb, note (TMDB), annee, ajout, titre, critique, duree, hasard.</summary>
+    public string DefaultSort { get; set; } = "imdb";
+
     /// <summary>Gets or sets the folder holding one folder per USB drive (the MediaID), as in JellyUSB.</summary>
     public string BasePath { get; set; } = "/mnt/usb/";
 
@@ -38,6 +41,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>Gets or sets a value indicating whether the saved searches are tiles in "My media" of the Android TV app.</summary>
     public bool TvSavedTiles { get; set; } = true;
 
+    /// <summary>Gets or sets a value indicating whether the searches of the Android TV app start with a card "N résultats" that opens every result in a grid.</summary>
+    public bool TvResultsCard { get; set; } = true;
+
     /// <summary>Gets or sets a value indicating whether the web client gets the JellySearch script.</summary>
     public bool EnableWebEnhancements { get; set; } = true;
 
@@ -46,6 +52,9 @@ public class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>Gets or sets a value indicating whether the search page of the web client shows how the search was understood.</summary>
     public bool WebExplain { get; set; } = true;
+
+    /// <summary>Gets or sets a value indicating whether the search page of the web client lists the results in a grid with their number, their order and pages.</summary>
+    public bool WebResultsGrid { get; set; } = true;
 
     /// <summary>Gets or sets a value indicating whether the details page of the web client shows the IMDb rating.</summary>
     public bool WebRatingsBadge { get; set; } = true;

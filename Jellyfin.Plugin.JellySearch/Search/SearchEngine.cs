@@ -30,10 +30,13 @@ public sealed class SearchContext
 
     /// <summary>The fields free text is searched in.</summary>
     public TextField TextFields { get; init; } = TextField.All;
+
+    /// <summary>The order of a search without words that asks for none (filters only): the IMDb rating by default.</summary>
+    public SortKey DefaultSort { get; init; } = SortKey.Imdb;
 }
 
-/// <summary>The result of a search: the documents in order, and how the query was understood.</summary>
-public sealed record SearchOutcome(ParsedQuery Query, IReadOnlyList<int> Docs, bool FellBackToText);
+/// <summary>The result of a search: the documents in order, how the query was understood, and the order used.</summary>
+public sealed record SearchOutcome(ParsedQuery Query, IReadOnlyList<int> Docs, bool FellBackToText, SortKey Sort);
 
 /// <summary>Runs a parsed query on a <see cref="SearchIndex"/>.</summary>
 public static class SearchEngine
@@ -57,12 +60,16 @@ public static class SearchEngine
             var literalDocs = Run(index, literal, text, context);
             if (literalDocs.Count > 0)
             {
-                return new SearchOutcome(literal, literalDocs, true);
+                return new SearchOutcome(literal, literalDocs, true, EffectiveSort(literal, context.DefaultSort));
             }
         }
 
-        return new SearchOutcome(parsed, docs, false);
+        return new SearchOutcome(parsed, docs, false, EffectiveSort(parsed, context.DefaultSort));
     }
+
+    /// <summary>The order a query is listed in: its own, else relevance for words, else <paramref name="defaultSort"/>.</summary>
+    public static SortKey EffectiveSort(ParsedQuery query, SortKey defaultSort)
+        => query.Sort != SortKey.Relevance || query.HasText ? query.Sort : defaultSort == SortKey.Relevance ? SortKey.Imdb : defaultSort;
 
     /// <summary>Runs <paramref name="query"/>; <paramref name="text"/> is the query as typed, for the exact title bonus.</summary>
     public static List<int> Run(SearchIndex index, ParsedQuery query, string text, SearchContext context)
@@ -119,13 +126,7 @@ public static class SearchEngine
             }
         }
 
-        var sort = query.Sort;
-        if (sort == SortKey.Relevance && !query.HasText)
-        {
-            sort = SortKey.Tmdb;
-        }
-
-        return Sort(index, matched, scores, sort, context).ToList();
+        return Sort(index, matched, scores, EffectiveSort(query, context.DefaultSort), context).ToList();
     }
 
     private static bool AsksForEpisodes(QueryNode node) => node switch

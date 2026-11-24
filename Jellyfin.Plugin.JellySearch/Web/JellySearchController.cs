@@ -30,6 +30,24 @@ public sealed record Facets(IReadOnlyList<FieldHelp> Fields, IReadOnlyList<strin
 /// <summary>The ratings of an item.</summary>
 public sealed record ItemRatings(string? ImdbId, double? Imdb, int? ImdbVotes, double? Tmdb, double? Critic);
 
+/// <summary>An IMDb rating and its number of votes.</summary>
+public sealed record ImdbScore(double Rating, int Votes);
+
+/// <summary>
+/// A page of results for the grid of the web search page: the number of results (all, and by kind), the
+/// order used, and the ids of the page with their IMDb ratings (the items themselves come from Jellyfin).
+/// </summary>
+public sealed record ResultsPage(
+    int Total,
+    IReadOnlyDictionary<string, int> Counts,
+    string Sort,
+    string SortLabel,
+    bool HasText,
+    bool HasFilters,
+    string Description,
+    IReadOnlyList<string> Ids,
+    IReadOnlyDictionary<string, ImdbScore> Imdb);
+
 /// <summary>A saved search, as the web page creates or changes it.</summary>
 public sealed record SavedSearchRequest(string? Name, string? Query);
 
@@ -77,6 +95,7 @@ public class JellySearchController : ControllerBase
             explain = config.WebExplain,
             ratingsBadge = config.WebRatingsBadge,
             savedTiles = config.WebSavedTiles,
+            resultsGrid = config.WebResultsGrid,
             version = typeof(JellySearchController).Assembly.GetName().Version?.ToString()
         });
         var script = reader.ReadToEnd().Replace("/*JELLYSEARCH_SETTINGS*/null", settings, StringComparison.Ordinal);
@@ -92,6 +111,61 @@ public class JellySearchController : ControllerBase
     {
         var parsed = _search.Explain(q ?? string.Empty);
         return new Explanation(parsed.Syntax, parsed.Description, parsed.NaturalLanguage, parsed.HasText);
+    }
+
+    /// <summary>
+    /// A page of the results of <paramref name="q"/> for the current user: <paramref name="sort"/> changes the
+    /// order (a name of "tri:"), <paramref name="types"/> keeps some kinds (Movie, Series, Episode, BoxSet).
+    /// </summary>
+    [HttpGet("Results")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ResultsPage>> GetResults([FromQuery] string? q, [FromQuery] string? sort, [FromQuery] string? types, [FromQuery] int? start, [FromQuery] int? limit)
+    {
+        if (await CurrentUserAsync().ConfigureAwait(false) is not { } user)
+        {
+            return Unauthorized();
+        }
+
+        var text = (q ?? string.Empty).Trim();
+        if (text.Length == 0 || _search.Index.Docs.Count == 0)
+        {
+            return new ResultsPage(0, new Dictionary<string, int>(), string.Empty, string.Empty, false, false, string.Empty, [], new Dictionary<string, ImdbScore>());
+        }
+
+        if (ParsedQuery.SortOf(sort) is { } wanted)
+        {
+            text += " tri:" + ParsedQuery.SortName(wanted);
+        }
+
+        var outcome = _search.Search(user, text);
+        var docs = _search.VisibleDocs(user, outcome, null);
+        var counts = docs.GroupBy(d => d.Kind).ToDictionary(g => g.Key.ToString(), g => g.Count());
+        var kinds = (types ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(t => Enum.TryParse<DocKind>(t, true, out var k) ? k : (DocKind?)null)
+            .OfType<DocKind>()
+            .ToHashSet();
+        var chosen = kinds.Count == 0 ? docs : docs.Where(d => kinds.Contains(d.Kind)).ToList();
+        var page = chosen.Skip(Math.Max(0, start ?? 0)).Take(Math.Clamp(limit ?? 48, 1, 200)).ToList();
+        var imdb = new Dictionary<string, ImdbScore>();
+        foreach (var d in page)
+        {
+            if (_ratings.Get(d.ImdbId) is { } r)
+            {
+                imdb[d.Id.ToString("N")] = new ImdbScore(r.Rating, r.Votes);
+            }
+        }
+
+        return new ResultsPage(
+            chosen.Count,
+            counts,
+            ParsedQuery.SortName(outcome.Sort),
+            ParsedQuery.SortLabel(outcome.Sort),
+            outcome.Query.HasText,
+            outcome.Query.HasFilters,
+            outcome.Query.Description,
+            page.Select(d => d.Id.ToString("N")).ToList(),
+            imdb);
     }
 
     /// <summary>The fields of the query language and the values of the library, for the filter panel.</summary>

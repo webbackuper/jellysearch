@@ -70,6 +70,9 @@ public sealed class SearchService
         return entry.Outcome.Value;
     }
 
+    /// <summary>The order of the searches without words (settings), the IMDb rating unless changed.</summary>
+    public static SortKey DefaultSort => ParsedQuery.SortOf(Plugin.CurrentConfiguration.DefaultSort) is { } s and not SortKey.Relevance ? s : SortKey.Imdb;
+
     /// <summary>How <paramref name="text"/> is understood (no user needed).</summary>
     public ParsedQuery Explain(string text)
         => QueryParser.Parse(text, _index.Current, Plugin.CurrentConfiguration.NaturalLanguage);
@@ -97,11 +100,15 @@ public sealed class SearchService
 
     /// <summary>The documents of <paramref name="outcome"/> the user may see, of <paramref name="kinds"/>, below <paramref name="parentId"/>.</summary>
     public List<Guid> Visible(User user, SearchOutcome outcome, IReadOnlySet<DocKind> kinds, Guid? parentId)
+        => VisibleDocs(user, outcome, parentId).Where(d => kinds.Contains(d.Kind)).Select(d => d.Id).ToList();
+
+    /// <summary>The documents of <paramref name="outcome"/> the user may see, below <paramref name="parentId"/>, in order.</summary>
+    public List<SearchDocument> VisibleDocs(User user, SearchOutcome outcome, Guid? parentId)
     {
         var index = _index.Current;
         var visible = Visible(user);
         var below = parentId is { } p ? Below(user, p) : null;
-        var ids = new List<Guid>(outcome.Docs.Count);
+        var docs = new List<SearchDocument>(outcome.Docs.Count);
         foreach (var docIndex in outcome.Docs)
         {
             if (docIndex >= index.Docs.Count)
@@ -110,13 +117,13 @@ public sealed class SearchService
             }
 
             var doc = index.Docs[docIndex];
-            if (kinds.Contains(doc.Kind) && visible.Contains(doc.Id) && (below is null || below.Contains(doc.Id)))
+            if (visible.Contains(doc.Id) && (below is null || below.Contains(doc.Id)))
             {
-                ids.Add(doc.Id);
+                docs.Add(doc);
             }
         }
 
-        return ids;
+        return docs;
     }
 
     /// <summary>Jellyfin's own search, for the kinds JellySearch does not answer for (music, photos, books…).</summary>
@@ -159,7 +166,8 @@ public sealed class SearchService
             Imdb = id => _ratings.Get(id),
             RandomSeed = HashCode.Combine(user.Id, text, DateTime.UtcNow.DayOfYear),
             Typos = config.Typos,
-            TextFields = fields
+            TextFields = fields,
+            DefaultSort = DefaultSort
         };
         return SearchEngine.Search(_index.Current, text, context, config.NaturalLanguage);
     }

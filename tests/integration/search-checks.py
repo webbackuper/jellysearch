@@ -41,10 +41,16 @@ def get(path, token, client=ATV):
         return status, body
 
 
-def names(token, text, kind="Movie", client=ATV, extra=""):
+def row(token, text, kind="Movie", client=ATV, extra=""):
+    """The items of a search row, as the TV app asks for them."""
     q = urllib.parse.quote(text)
     status, r = get(f"/Items?searchTerm={q}&limit=25&includeItemTypes={kind}&recursive=true&fields=Overview{extra}", token, client)
-    return [i["Name"] for i in r["Items"]] if status == 200 else [f"HTTP {status}"]
+    return r["Items"] if status == 200 else [{"Name": f"HTTP {status}", "Type": "Error"}]
+
+
+def names(token, text, kind="Movie", client=ATV, extra=""):
+    """The names of a search row, without the card "N résultats" of the TV app."""
+    return [i["Name"] for i in row(token, text, kind, client, extra) if i["Type"] != "CollectionFolder"]
 
 
 def main():
@@ -129,6 +135,53 @@ def main():
     check("filter imdb>8.3", sorted(names(token, "imdb>8.3")) == ["Alien, le huitième passager", "Aliens, le retour"], names(token, "imdb>8.3"))
     check("phrase: notés plus de 8.2 sur imdb", sorted(names(token, "films notés plus de 8.2 sur imdb")) == ["Alien, le huitième passager", "Aliens, le retour", "Le Fabuleux Destin d'Amélie Poulain"],
           names(token, "films notés plus de 8.2 sur imdb"))
+
+    # --- the order of a search without words: IMDb rating
+    check("filters only: by IMDb rating", names(token, "imdb>5")[:3] == ["Alien, le huitième passager", "Aliens, le retour", "Le Fabuleux Destin d'Amélie Poulain"],
+          names(token, "imdb>5"))
+    check("words: by relevance", names(token, "alien")[:1] == ["Alien, le huitième passager"], names(token, "alien"))
+
+    # --- the web grid: number of results by kind, order, pages
+    status, r = get("/JellySearch/Results?q=" + urllib.parse.quote("genre:comedie") + "&limit=2", token, WEB)
+    check("web grid: number, order, page", status == 200 and r["Total"] == 3 and r["Counts"] == {"Movie": 3} and r["Sort"] == "imdb" and len(r["Ids"]) == 2
+          and r["Ids"][0] == movies["Le Fabuleux Destin d'Amélie Poulain"]["Id"].replace("-", "") and r["Imdb"][r["Ids"][0]]["Rating"] == 8.3, r)
+    status, r2 = get("/JellySearch/Results?q=" + urllib.parse.quote("genre:comedie") + "&limit=2&start=2&sort=titre", token, WEB)
+    check("web grid: next page in another order", status == 200 and r2["Sort"] == "titre" and len(r2["Ids"]) == 1 and r2["Total"] == 3, r2)
+    status, r3 = get("/JellySearch/Results?q=" + urllib.parse.quote("imdb>5") + "&types=Series", token, WEB)
+    check("web grid: one kind", status == 200 and r3["Total"] == 1 and r3["Counts"].get("Movie") == 9 and r3["HasFilters"], r3)
+    status, r4 = get("/JellySearch/Results?q=alien", token, WEB)
+    check("web grid: words by relevance", status == 200 and r4["Sort"] == "pertinence" and r4["HasText"] and not r4["HasFilters"], r4)
+    status, r = get("/JellySearch/Explain?q=" + urllib.parse.quote("genre:comedie tri:ajout"), token, WEB)
+    check("explain keeps the order", status == 200 and r["Syntax"] == "genre:Comédie tri:ajout", r)
+
+    # --- the TV app: a card "N résultats" first, that opens every result in a grid
+    items = row(token, "genre:comedie")
+    card = items[0] if items else {}
+    check("TV: card first in the movies row", card.get("Type") == "CollectionFolder" and card.get("Name") == "3 résultats"
+          and card.get("CollectionType") == "boxsets" and card.get("DisplayPreferencesId") == "jellysearch-results" and len(items) == 4, [i["Name"] for i in items])
+    check("TV: no card in the other rows", all(i["Type"] != "CollectionFolder" for i in row(token, "imdb>5", "Series")))
+    check("TV: no card for a few words", all(i["Type"] != "CollectionFolder" for i in row(token, "alien")))
+    check("web: no card", all(i["Type"] != "CollectionFolder" for i in row(token, "genre:comedie", client=WEB)))
+    cid = card.get("Id", "00000000000000000000000000000000")
+    status, view = get(f"/Items/{cid}?userId={user_id}", token, ATV)
+    check("TV: the card opens", status == 200 and view.get("Type") == "CollectionFolder" and view.get("Overview") == "genre Comédie", (status, view))
+    status, grid = get(f"/Items?parentId={cid}&sortBy=CommunityRating,SortName&sortOrder=Descending&startIndex=0&limit=50", token, ATV)
+    check("TV: card grid by IMDb rating", status == 200 and grid["TotalRecordCount"] == 3
+          and [i["Name"] for i in grid["Items"]] == ["Le Fabuleux Destin d'Amélie Poulain", "Dumb & Dumber", "The Mask"], (status, grid))
+    status, grid = get(f"/Items?parentId={cid}&sortBy=CommunityRating&filters=IsFavorite", token, ATV)
+    check("TV: grid filters (favourites)", status == 200 and grid["TotalRecordCount"] == 0, grid)
+    status, png = ts.call("GET", f"/Items/{cid}/Images/Primary?fillHeight=270&tag={card.get('ImageTags', {}).get('Primary')}", raw=True)
+    check("TV: card image", status == 200 and png[:4] == b"\x89PNG", status)
+    status, prefs = get("/DisplayPreferences/jellysearch-results?client=androidtv", token, ATV)
+    custom = (prefs or {}).get("CustomPrefs") or {}
+    check("TV: grid starts vertical, by rating", status == 200 and custom.get("SortBy") == "COMMUNITY_RATING" and custom.get("GridDirection") == "VERTICAL", prefs)
+    prefs["CustomPrefs"] = dict(custom, SortBy="DATE_CREATED", SortOrder="DESCENDING", GridDirection="HORIZONTAL")
+    ts.call("POST", f"/DisplayPreferences/jellysearch-results?client=androidtv&userId={user_id}", prefs, client=ATV + f', Token="{token}"', raw=True)
+    status, prefs = get("/DisplayPreferences/jellysearch-results?client=androidtv", token, ATV)
+    custom = (prefs or {}).get("CustomPrefs") or {}
+    check("TV: the order chosen in the app is kept", custom.get("SortBy") == "DATE_CREATED" and custom.get("GridDirection") == "HORIZONTAL", custom)
+    status, prefs = get("/DisplayPreferences/jellysearch-other?client=androidtv", token, ATV)
+    check("TV: other display preferences untouched", status == 200 and "SortBy" not in ((prefs or {}).get("CustomPrefs") or {}), prefs)
 
     # --- the TV details screen shows both ratings; nothing stored
     status, dto = get(f"/Items/{alien['Id']}?userId={user_id}", token, ATV)

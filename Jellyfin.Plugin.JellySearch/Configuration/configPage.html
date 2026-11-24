@@ -84,6 +84,21 @@
                             <div class="fieldDescription checkboxFieldDescription">« ailen » trouve Alien, « harri poter » Harry Potter. Les accents et les majuscules sont toujours ignorés.</div>
                         </div>
 
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="DefaultSort">Ordre des recherches par filtres</label>
+                            <select id="DefaultSort" is="emby-select">
+                                <option value="imdb">Note IMDb</option>
+                                <option value="note">Note TMDB</option>
+                                <option value="critique">Note critique</option>
+                                <option value="annee">Année (récents d'abord)</option>
+                                <option value="ajout">Date d'ajout</option>
+                                <option value="titre">Titre</option>
+                                <option value="duree">Durée</option>
+                                <option value="hasard">Hasard</option>
+                            </select>
+                            <div class="fieldDescription">Pour les recherches sans mots (« comédies des années 80 », <code>imdb&gt;7</code>), sur le web et la TV. Une recherche par mots reste triée par pertinence. L'ordre se change aussi sur la page de recherche (« Trier par ») ou avec <code>tri:…</code>.</div>
+                        </div>
+
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label class="emby-checkbox-label">
                                 <input id="DownloadImdbRatings" type="checkbox" is="emby-checkbox" />
@@ -129,6 +144,10 @@
 
                         <h3>Télévision (application Android TV)</h3>
                         <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label"><input id="TvResultsCard" type="checkbox" is="emby-checkbox" /><span>Commencer les résultats d'une recherche par une carte « N résultats »</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">En tête de la ligne Films (qui n'en montre que 25) : le nombre de résultats, ce qui a été compris et l'ordre. Elle ouvre une grille verticale de tous les résultats, par note IMDb (« Community rating » dans l'application) ; le bouton de tri de la grille change l'ordre. Pour les recherches avec filtres ou plus de 25 films.</div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
                             <label class="emby-checkbox-label"><input id="TvSavedTiles" type="checkbox" is="emby-checkbox" /><span>Afficher les recherches enregistrées en tuiles dans « Mes médias »</span></label>
                             <div class="fieldDescription checkboxFieldDescription">Chaque tuile ouvre la grille de ses résultats, toujours à jour. Rien n'est créé dans la médiathèque.</div>
                         </div>
@@ -141,6 +160,10 @@
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label class="emby-checkbox-label"><input id="EnableWebEnhancements" type="checkbox" is="emby-checkbox" /><span>Ajouter le script JellySearch à l'interface web</span></label>
                             <div class="fieldDescription checkboxFieldDescription">Ajouté à la volée à la page servie : les fichiers de Jellyfin ne sont pas modifiés. Sans lui, la recherche reste améliorée mais sans panneau ni tuiles web.</div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label"><input id="WebResultsGrid" type="checkbox" is="emby-checkbox" /><span>Afficher les résultats en grille, avec leur nombre, l'ordre et des pages</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">4 lignes d'affiches par page (ou une liste), onglets Films / Séries / Collections, « Trier par », flèches pour les résultats suivants. Remplace les lignes Films, Séries, Épisodes et Collections de Jellyfin ; les autres (personnes, musique…) restent.</div>
                         </div>
                         <div class="checkboxContainer">
                             <label class="emby-checkbox-label"><input id="WebFilterPanel" type="checkbox" is="emby-checkbox" /><span>Panneau « Filtres » sur la page de recherche</span></label>
@@ -197,9 +220,9 @@
                 var pluginId = '8b8ecb0d-b645-48ad-a58a-2e79c932f0c7';
                 var pluginName = 'JellySearch';
                 var page = document.querySelector('#JellySearchConfigPage');
-                var texts = ['BasePath', 'ImdbRatingsUrl'];
+                var texts = ['BasePath', 'ImdbRatingsUrl', 'DefaultSort'];
                 var checks = ['EnableSearch', 'NaturalLanguage', 'Typos', 'DownloadImdbRatings', 'SearchOverview', 'SearchPeople', 'SearchTags',
-                    'TvSavedTiles', 'TvRatingsLine', 'EnableWebEnhancements', 'WebFilterPanel', 'WebExplain', 'WebSavedTiles', 'WebRatingsBadge'];
+                    'TvResultsCard', 'TvSavedTiles', 'TvRatingsLine', 'EnableWebEnhancements', 'WebResultsGrid', 'WebFilterPanel', 'WebExplain', 'WebSavedTiles', 'WebRatingsBadge'];
                 var installed = null;
                 var pkg = null;
 

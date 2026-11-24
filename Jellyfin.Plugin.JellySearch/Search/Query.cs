@@ -405,9 +405,43 @@ public sealed record FilterValue
 /// <summary>A parsed query: the tree, and how it was understood.</summary>
 public sealed record ParsedQuery(QueryNode? Root, SortKey Sort, bool NaturalLanguage, bool HasText)
 {
-    /// <summary>The query in the query language.</summary>
-    public string Syntax => Root?.ToSyntax() ?? string.Empty;
+    /// <summary>The query in the query language, with its order ("tri:…") when it asks for one.</summary>
+    public string Syntax => Join(Root?.ToSyntax(), Sort == SortKey.Relevance ? null : "tri:" + SortName(Sort), " ");
 
     /// <summary>The query in plain French.</summary>
-    public string Description => Root?.Describe() ?? string.Empty;
+    public string Description => Join(Root?.Describe(), Sort == SortKey.Relevance ? null : "tri par " + SortLabel(Sort), " · ");
+
+    /// <summary>Whether the query filters (fields, genres read in a phrase, OU, NON) rather than only searching words.</summary>
+    public bool HasFilters => Filters(Root);
+
+    /// <summary>The name of an order in the query language ("imdb").</summary>
+    public static string SortName(SortKey sort) => FilterValue.SortNames.First(x => x.Key == sort).Name;
+
+    /// <summary>An order in plain French ("note IMDb").</summary>
+    public static string SortLabel(SortKey sort) => FilterValue.SortNames.First(x => x.Key == sort).Label;
+
+    /// <summary>The order named <paramref name="name"/> in the query language (any alias), if any.</summary>
+    public static SortKey? SortOf(string? name)
+    {
+        var folded = TextFold.Fold(name ?? string.Empty);
+        foreach (var s in FilterValue.SortNames)
+        {
+            if (s.Name == folded || s.Aliases.Contains(folded))
+            {
+                return s.Key;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool Filters(QueryNode? node) => node switch
+    {
+        null or TextNode or PhraseNode => false,
+        AndNode a => a.Children.Any(Filters),
+        _ => true
+    };
+
+    private static string Join(string? a, string? b, string separator)
+        => string.IsNullOrEmpty(a) ? b ?? string.Empty : string.IsNullOrEmpty(b) ? a : a + separator + b;
 }

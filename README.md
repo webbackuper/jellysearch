@@ -19,7 +19,11 @@ Plugin [Jellyfin](https://jellyfin.org) 12.4 qui améliore la recherche, sur la 
    TV, avec son image ; elle s'ouvre sur ses résultats, toujours à jour.
 6. **Les deux notes.** Jellyfin ne garde qu'une note (TMDB avec les NFO Kodi) : JellySearch télécharge
    chaque semaine le fichier public des notes IMDb et les affiche sur la fiche des films, sans rien
-   écrire dans la base.
+   écrire dans la base. Une recherche par filtres est triée par note IMDb.
+7. **Tous les résultats et leur nombre.** Sur le web, une grille de 4 lignes d'affiches par page (ou une
+   liste), avec le nombre de résultats, des onglets par type, le tri et des flèches pour la page suivante.
+   Sur la TV, une carte « N résultats » en tête de la recherche ouvre une grille verticale de tous les
+   résultats.
 
 La recherche est faite par le serveur : tous les clients en profitent (page web, application Android TV,
 applications mobiles), sans rien installer sur la TV. La musique, la TV en direct et les personnes restent
@@ -57,6 +61,12 @@ tape ou dicte passe par JellySearch.
   et Collections se remplissent avec les résultats de JellySearch.
 - Tapez une syntaxe courte : `genre:horreur annee:80s`, `imdb>8 vu:non`.
 - Ou appuyez sur le micro et dites une phrase : « comédies des années 90 avec Jim Carrey ».
+- La rangée Films ne montre que 25 films. Quand la recherche filtre (ou trouve plus de 25 films), elle
+  commence par une carte **« N résultats »** : le nombre de résultats, ce qui a été compris et l'ordre.
+  Après la touche loupe du clavier, elle a le focus : OK ouvre une **grille verticale** de tous les résultats,
+  films et séries, par note IMDb. Le bouton de tri de la grille change l'ordre (« Community rating » est la
+  note IMDb, puis nom, date d'ajout, date de sortie, note critique) et l'application le garde pour les
+  recherches suivantes ; elle filtre aussi les non vus et les favoris.
 - Les recherches enregistrées depuis le web sont des tuiles dans **Mes médias**. Une tuile ouvre la grille
   de ses résultats, que la TV peut trier (nom, date d'ajout, note…).
 - La fiche d'un film commence par ses notes : « ⭐ IMDb **8,5** (950 k votes) · TMDB **8,1** ».
@@ -69,11 +79,24 @@ La page de recherche gagne trois boutons sous le champ :
   opérateur, valeur), combinées par ET ou OU. Les genres et les MediaID sont proposés en liste, les tags et
   studios en suggestions. La recherche obtenue s'affiche en syntaxe, puis dans le champ.
 - **Aide** rappelle la syntaxe et donne des exemples.
-- **Créer une tuile** enregistre la recherche en cours sous le nom choisi. Le panneau Filtres liste vos
-  tuiles, et permet de les ouvrir ou de les supprimer.
+- **Créer une tuile** enregistre la recherche en cours sous le nom choisi (avec l'ordre choisi dans la
+  grille). Le panneau Filtres liste vos tuiles, et permet de les ouvrir ou de les supprimer.
 
 Sous le champ, « **Compris :** films · genre Horreur · années 80 · avec Sigourney Weaver » montre comment
 la recherche a été lue.
+
+Les résultats s'affichent en **grille** à la place des rangées Films, Séries, Épisodes et Collections de
+Jellyfin (les personnes, la musique… restent en dessous) :
+
+- en tête, le **nombre de résultats** et, quand il y a plusieurs types, des onglets « Tout (87) ·
+  Films (64) · Séries (20) · Collections (3) » ;
+- **Trier par** : note IMDb (par défaut pour une recherche par filtres), pertinence (par défaut pour une
+  recherche par mots), note TMDB, note critique, année, date d'ajout, titre, durée, hasard ;
+- l'affichage en **affiches** (4 lignes, autant de colonnes que la largeur en permet) ou en **liste**
+  (titre, type, année, notes IMDb et TMDB, durée, genres) ;
+- les **flèches** en haut à droite (et en bas) passent aux résultats suivants : « 1–32 sur 87 ».
+
+En revenant d'une fiche, la grille retrouve sa page et son ordre.
 
 Sur la page d'accueil, vos tuiles s'ajoutent à **Mes médias**. Sur la fiche d'un film, la note IMDb
 s'affiche à côté de l'étoile de Jellyfin.
@@ -98,7 +121,7 @@ Les termes s'additionnent (ET). Les valeurs avec espaces s'écrivent entre guill
 | `type` | `type:film`, `type:serie\|episode`, `type!=collection` | une recherche sans texte n'affiche pas les épisodes, sauf `type:episode` |
 | `vu`, `favori` | `vu:non`, `favori:oui` | pour l'utilisateur connecté |
 | `ajout` | `ajout<30j`, `ajout<2sem`, `ajout>=2026-01-01` | ajouté il y a moins de 30 jours, depuis le 1er janvier… |
-| `tri` | `tri:note`, `imdb`, `annee`, `ancien`, `ajout`, `titre`, `duree`, `hasard` | |
+| `tri` | `tri:imdb`, `note`, `critique`, `annee`, `ancien`, `ajout`, `titre`, `duree`, `hasard`, `pertinence` | sans `tri` : pertinence pour des mots, note IMDb pour des filtres (réglable) |
 
 Combinaisons : `OU`, `NON` (ou `-mot`, `-genre:romance`), parenthèses :
 `(genre:western OU genre:comedie) annee<2000 -genre:romance`. Les champs ont aussi des noms anglais
@@ -139,11 +162,12 @@ de Jellyfin n'est pas modifiée. Le téléchargement se désactive dans les rég
 | Remplacer la recherche | oui | Films, séries, épisodes et collections sont cherchés par JellySearch |
 | Comprendre les phrases | oui | Lit les phrases ; sinon, seulement le texte et la syntaxe |
 | Tolérer les fautes de frappe | oui | Une faute pour 4 à 7 lettres, deux au-delà |
+| Ordre des recherches par filtres | note IMDb | Ou note TMDB, note critique, année, date d'ajout, titre, durée, hasard |
 | Télécharger les notes IMDb | oui | Tâche hebdomadaire, filtres `imdb` et `votes` |
 | Dossier des disques USB | `/mnt/usb/` | Pour `media:` et `dispo:` (comme le chemin de base de JellyUSB) |
 | Chercher aussi dans… | oui | Résumés ; acteurs, réalisateurs et scénaristes ; genres, tags et studios |
-| TV : tuiles, notes sur la fiche | oui | |
-| Web : script, panneau Filtres, « Compris », tuiles, note IMDb | oui | |
+| TV : carte « N résultats », tuiles, notes sur la fiche | oui | |
+| Web : script, grille des résultats, panneau Filtres, « Compris », tuiles, note IMDb | oui | |
 
 ## Avec JellyUSB
 
@@ -183,10 +207,14 @@ tests/integration/run-all.sh      # instance Jellyfin jetable, médiathèque de 
   - les recherches comme les envoie l'application TV (une requête par rangée) et comme les envoie la page
     web (une requête pour tous les types) ;
   - le filtre par bibliothèque, la pagination et les notes IMDb (servies par un petit fichier local) ;
+  - l'ordre par défaut, la grille web (nombre, types, ordre, pages) ;
+  - la carte « N résultats » de la TV, sa grille (ordre, filtres) et ses préférences d'affichage ;
   - les tuiles TV et la ligne des notes sur la fiche ;
   - un disque débranché et un film marqué vu.
 - `uninstall-checks.py` désinstalle le plugin et vérifie qu'il ne reste rien.
 - Avec `JELLYSEARCH_WITH_JELLYUSB=<dossier de Jellyfin.Plugin.JellyUsb.dll>`, JellyUSB est installé à côté.
+- Pour essayer les pages de résultats à la main, `JELLYSEARCH_EXTRA_MOVIES=70 tests/integration/make-media.sh
+  <dossier>` ajoute 70 documentaires (un disque MOVIES07) à la médiathèque de test.
 
 `release.sh` lance ces tests et annule la publication au moindre échec.
 
@@ -216,6 +244,13 @@ tests/integration/run-all.sh      # instance Jellyfin jetable, médiathèque de 
   de type « collections », ajoutée à `GET /UserViews` pour l'application Android TV ; sa grille est la
   recherche. Les images sont dessinées en SVG et converties en PNG avec la bibliothèque d'images livrée avec
   Jellyfin.
+- **Carte « N résultats »** (`SearchMiddleware`, `ResultViews`) : pour l'application Android TV, la réponse
+  de la rangée Films commence par une bibliothèque virtuelle de plus, gardée en mémoire un jour, dont la
+  grille est la recherche. Ses préférences d'affichage (`GET /DisplayPreferences/jellysearch-results`)
+  partent d'une grille verticale triée par note, tant que l'utilisateur n'a rien changé dans l'application.
+- **Grille web** : `GET /JellySearch/Results?q=…&sort=…&types=…&start=…&limit=…` donne le nombre de
+  résultats par type, l'ordre utilisé, les identifiants de la page et leurs notes IMDb ; les éléments
+  viennent ensuite de Jellyfin (`/Items?ids=…`).
 - **Web** : `WebClientInjectionMiddleware` ajoute `JellySearch/web.js` à `index.html` au moment où la page
   est servie.
 
